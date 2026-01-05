@@ -1,0 +1,26 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Arquivo com dados sensíveis
+psw.py
+
+# Arquivos temporários de cache
+*.cache
+
+# Ignorar todos os arquivos .log
+*.log
+
+# Ignorar pasta de perfil do chrome
+chrome_profile_normal
