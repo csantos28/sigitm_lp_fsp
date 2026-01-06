@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import io
 from typing import Any, Optional, Iterable, Dict, TypeVar, List, Tuple
 import contextlib
-from .log_config import SystemLogger
+from .syslog import SystemLogger
 from .psw import host_ssl, dbname, user, password_db, schema
 
 import psycopg2
