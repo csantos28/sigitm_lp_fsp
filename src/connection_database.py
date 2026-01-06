@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import io
 from typing import Any, Optional, Iterable, Dict, TypeVar, List, Tuple
 import contextlib
-from .syslog import SystemLogger
+from .log_config import SystemLogger
 from .psw import host_ssl, dbname, user, password_db, schema
 
 import psycopg2
@@ -63,13 +63,13 @@ class PostgreSQLHandler:
         """Garante que a conexão seja fechada ao sair do contexto."""
         self.disconnect()
         if exc_type is not None:
-            self._logger.error(f"Exception occurred: {exc_type.__name__}: {exc_val}", exc_info=(exc_type, exc_val, exc_tb)) # Não suprimimos exceções intencionalmente
+            self._logger.error(f"Exception occurred: {exc_type.__name__}: {exc_val}", exc_info=(exc_type, exc_val, exc_tb)) # Não suprimi exceções intencionalmente
     
     @property
     def connection(self) -> PgConnection:
         """Acesso seguro à conexão com verificação de estado."""
         if self._connection is None or self._connection.closed:
-            raise psycopg2.InterfaceError("A conexão não está estabelecida ou está fechada.")
+            raise psycopg2.InterfaceError("⚠️ A conexão não está estabelecida ou está fechada.")
         
         return self._connection
     
@@ -82,7 +82,7 @@ class PostgreSQLHandler:
         """
 
         if self._connection is not None and not self.connection.closed:
-            self._logger.warning("Conexão já estabelecida.")
+            self._logger.warning("ℹ️ Conexão já estabelecida.")
             return
 
         try:
@@ -104,7 +104,7 @@ class PostgreSQLHandler:
                 cursor.execute(f"SET search_path TO {self._config.schema}, vivo")
         
         except psycopg2.Error as e:
-            self._logger.error(f"Falha ao conectar ao PostgreSQL: {e}")
+            self._logger.error(f"❌ Falha ao conectar ao PostgreSQL: {e}")
             raise psycopg2.OperationalError(f"Conexão falhou: {e}") from e
     
     def disconnect(self) -> None:
@@ -112,10 +112,10 @@ class PostgreSQLHandler:
         if self._connection is not None and not self._connection.closed:
             try:
                 self._connection.close()
-                self._logger.info("Conexão com o PostgreSQL encerrada.")
+                self._logger.info("✅ Conexão com o PostgreSQL encerrada.")
             
             except psycopg2.Error as e:
-                self._logger.error(f"Erro ao encerrar a conexão: {e}")
+                self._logger.error(f"❌ Erro ao encerrar a conexão: {e}")
             
             finally:
                 self._connection = None
@@ -141,7 +141,7 @@ class PostgreSQLHandler:
 
         except psycopg2.Error as e:
             self.connection.rollback()
-            self._logger.error(f"Falha na operação do banco de dados: {e}")
+            self._logger.error(f"❌ Falha na operação do banco de dados: {e}")
             raise
 
         finally:
@@ -235,7 +235,7 @@ class PostgreSQLHandler:
                 return cursor.fetchone()[0]
         
         except psycopg2.Error as e:
-            self._logger.error(f"Falha ao verificar a existência da tabela: {table_name}")
+            self._logger.error(f"❌ Falha ao verificar a existência da tabela: {table_name}")
             raise
     
     def create_table_from_dataframe(
@@ -261,10 +261,10 @@ class PostgreSQLHandler:
         """
 
         if df.empty:
-            raise ValueError("Não é possível criar uma tabela a partir de um DataFrame vazio.")
+            raise ValueError("❌ Não é possível criar uma tabela a partir de um DataFrame vazio.")
 
         if if_not_exists and self.table_exists(table_name):
-            self._logger.info(f"A tabela {table_name} já existe, ignorando a criação.")
+            self._logger.info(f"ℹ️ A tabela {table_name} já existe, ignorando a criação.")
             return
         
         columns_df = []
@@ -298,10 +298,10 @@ class PostgreSQLHandler:
                     
                         cursor.execute(index_query)
 
-            self._logger.info(f"Tabela {self._config.schema}.{table_name} criada com sucesso.")
+            self._logger.info(f"✅ Tabela {self._config.schema}.{table_name} criada com sucesso.")
 
         except psycopg2.Error as e:
-            self._logger.error(f"Falha ao criar a tabela {table_name}: {e}")
+            self._logger.error(f"❌ Falha ao criar a tabela {table_name}: {e}")
             raise
     
     def save_dataframe(
@@ -330,7 +330,7 @@ class PostgreSQLHandler:
         """
 
         if df.empty:
-            raise ValueError("Não é possível salvar um DataFrame vazio.")
+            raise ValueError("❌ Não é possível salvar um DataFrame vazio.")
 
         if create_table:
             self.create_table_from_dataframe(df, table_name, if_not_exists=True)
@@ -355,12 +355,12 @@ class PostgreSQLHandler:
             with self._get_cursor() as cursor:
                 execute_batch(cursor, insert_query, data, page_size=batch_size)
                 rowcount = len(data)
-                self._logger.info(f"{rowcount} linhas inseridas em {self._config.schema}.{table_name}")
+                self._logger.info(f"✅ {rowcount} linhas inseridas em {self._config.schema}.{table_name}")
 
                 return rowcount
         
         except psycopg2.Error as e:
-            self._logger.error(f"Falha ao inserir dados em {table_name}: {e}")
+            self._logger.error(f"❌ Falha ao inserir dados em {table_name}: {e}")
 
     def bulk_insert_dataframe(self, df: pd.DataFrame, table_name: str) -> None:
         """
@@ -421,10 +421,10 @@ class PostgreSQLHandler:
         try:
             with self._get_cursor() as cursor:
                 cursor.execute(query)
-            self._logger.info(f"Truncated table {self._config.schema}.{table_name}")
+            self._logger.info(f"✅ Truncated table {self._config.schema}.{table_name}")
         
         except psycopg2.Error as e:
-            self._logger.error(f"Falha ao truncar a tabela {table_name}: {e}")
+            self._logger.error(f"❌ Falha ao truncar a tabela {table_name}: {e}")
     
     def execute_query(self, query: str, params: Optional[Tuple] = None) -> List[Dict]:
         """
@@ -447,7 +447,7 @@ class PostgreSQLHandler:
                 return cursor.fetchall()
 
         except psycopg2.Error as e:
-            self._logger.error(f"Falha na execução da consulta: {e}")
+            self._logger.error(f"❌ Falha na execução da consulta: {e}")
             raise
     
     def dataframe_from_query(self, query: str, params: Optional[Tuple] = None) -> pd.DataFrame:
@@ -473,7 +473,7 @@ class PostgreSQLHandler:
                 return pd.DataFrame(data, columns=columns)
 
         except psycopg2.Error as e:
-            self._logger.error(f"Falha na execução da consulta: {e}")
+            self._logger.error(f"❌ Falha na execução da consulta: {e}")
             raise        
     
     def execute_non_query(self, query: str, params: Optional[Tuple] = None) -> None:
@@ -483,7 +483,7 @@ class PostgreSQLHandler:
         try:
             with self._get_cursor() as cursor:
                 cursor.execute(query, params)
-                self._logger.info(f"Comando executado: {query.splitlines()[0][:60]}...")
+                self._logger.info(f"✅ Comando executado: {query.splitlines()[0][:60]}...")
         
         except psycopg2.Error as e:
-            self._logger.error(f"Falha na execução do comando DDL: {e}")
+            self._logger.error(f"❌ Falha na execução do comando DDL: {e}")

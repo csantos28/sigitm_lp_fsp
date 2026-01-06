@@ -60,11 +60,11 @@ class VPNConfig:
         ]
         
         if not all(isinstance(attr, str) for attr in [self.vpn_rj_name, self.vpn_bh_name] + ip_fields):
-            raise ValueError("Todos os parâmetros da VPN devem ser strings")
+            raise ValueError("⚠️ Todos os parâmetros da VPN devem ser strings")
         
         for ip in ip_fields:
             if not self._is_valid_ip(ip):
-                raise ValueError(f"IP inválido: {ip}")
+                raise ValueError(f"❌ IP inválido: {ip}")
 
     @staticmethod
     def _is_valid_ip(ip: str) -> bool:
@@ -157,7 +157,7 @@ class VPNConnectionManager:
             return self._status_cache
             
         except subprocess.SubprocessError as e:
-            self.logger.warning(f"Erro ao verificar gateway: {e.stderr or str(e)}")
+            self.logger.warning(f"❌ Erro ao verificar gateway: {e.stderr or str(e)}")
             return None
 
     def connect_with_fallback(self) -> Tuple[bool, str]:
@@ -186,7 +186,7 @@ class VPNConnectionManager:
         self.logger.info("❌ Nenhuma VPN conectada.")
 
         # 2. Tentativa na VPN-BH
-        self.logger.info("Iniciando conexão com VPN-BH...")
+        self.logger.info("🔃 Iniciando conexão com VPN-BH...")
         status, message = self._connect_to_vpn(
             vpn_name=self.config.vpn_bh_name,
             expected_gateway='bh'
@@ -196,7 +196,7 @@ class VPNConnectionManager:
             return True, message
 
         # 3. Fallback para VPN-RJ
-        self.logger.info("Ativando fallback para VPN-RJ...")
+        self.logger.info("ℹ️ Ativando fallback para VPN-RJ...")
         return self._connect_to_vpn(
             vpn_name=self.config.vpn_rj_name,
             expected_gateway='rj'
@@ -232,7 +232,7 @@ class VPNConnectionManager:
                     time.sleep(self.config.retry_delay)
                     
             except Exception as e:
-                self.logger.error(f"Tentativa {attempt} falhou: {str(e)}")
+                self.logger.error(f"❌ Tentativa {attempt} falhou: {str(e)}")
                 time.sleep(self.config.retry_delay)
         
         return False, f"Falha ao conectar à {vpn_name} após {self.config.max_retries} tentativas"
@@ -255,7 +255,7 @@ class VPNConnectionManager:
                 return False
 
             # Localiza a VPN na lista
-            self.logger.debug("Localizando VPN na lista...")
+            self.logger.debug("🔍 Localizando VPN na lista...")
             vpn_item = self._find_vpn_in_list(window, vpn_name)
             if not vpn_item:
                 window.close()
@@ -270,7 +270,7 @@ class VPNConnectionManager:
             return True
 
         except Exception as e:
-            self.logger.error(f"Erro durante conexão: {str(e)}")
+            self.logger.error(f"❌ Erro durante conexão: {str(e)}")
             return False
 
     def _find_vpn_in_list(self, window: WindowSpecification, vpn_name: str) -> Optional[ListItemWrapper]:
@@ -311,11 +311,11 @@ class VPNConnectionManager:
                 )
                 for idx, item in enumerate(vpn_list.children()):
                     if vpn_name.lower() in item.window_text().lower():
-                        self.logger.debug(f"VPN encontrada via busca iterativa (item {idx + 1})")
+                        self.logger.debug(f"✅ VPN encontrada via busca iterativa (item {idx + 1})")
                         return item
             except Exception as e:
-                self.logger.debug(f"Busca iterativa falhou: {str(e)}")
-                self.logger.warning(f"VPN '{vpn_name}' não encontrada na lista")
+                self.logger.debug(f"❌ Busca iterativa falhou: {str(e)}")
+                self.logger.warning(f"❌ VPN '{vpn_name}' não encontrada na lista")
                 return None
 
         except Exception as e:
@@ -335,13 +335,13 @@ class VPNConnectionManager:
         Returns:
             bool: True se o clique foi bem-sucedido
         """
-        self.logger.debug(f"Tentando conectar a VPN: {vpn_name}")
+        self.logger.debug(f"⌛ Tentando conectar a VPN: {vpn_name}")
 
         try:
             # Primeiro localiza o item correto da VPN
             vpn_item = self._find_vpn_in_list(window, vpn_name)
             if not vpn_item:
-                self.logger.error(f"Item da VPN {vpn_name} não encontrado")
+                self.logger.error(f"❌ Item da VPN {vpn_name} não encontrado")
                 return False
 
             # Abordagem 1: Botão Conectar específico
@@ -357,7 +357,7 @@ class VPNConnectionManager:
                     time.sleep(3)
 
                     if self._verify_connection_success(window, vpn_name):
-                        self.logger.info(f"Conexão estabelecida com {vpn_name} (via botão específico)")
+                        self.logger.info(f"✅ Conexão estabelecida com {vpn_name} (via botão específico)")
                         return True
             except Exception:
                 pass # Erro esperado, não registra
@@ -378,7 +378,7 @@ class VPNConnectionManager:
                                 time.sleep(3)
 
                                 if self._verify_connection_success(window, vpn_name):
-                                    self.logger.info(f"Conexão estabelecida com {vpn_name} (via busca global)")
+                                    self.logger.info(f"✅ Conexão estabelecida com {vpn_name} (via busca global)")
                                     return True
                         except:
                             continue
@@ -388,7 +388,7 @@ class VPNConnectionManager:
                     time.sleep(3)
 
                     if self._verify_connection_success(window, vpn_name):
-                        self.logger.info(f"Conexão estabelecida com {vpn_name} (via fallback global)")
+                        self.logger.info(f"✅ Conexão estabelecida com {vpn_name} (via fallback global)")
                         return True
                     else:
                         # Verifica se conectou em outra VPN por engano
@@ -396,13 +396,13 @@ class VPNConnectionManager:
                         if active_vpn and active_vpn != vpn_name:
                             self._disconnect_vpn(window, active_vpn)
             except Exception as e:
-                self.logger.debug(f"Erro durante busca global: {str(e)}")
+                self.logger.debug(f"❌ Erro durante busca global: {str(e)}")
 
-            self.logger.error(f"Falha ao conectar à {vpn_name} após todas as tentativas")
+            self.logger.error(f"❌ Falha ao conectar à {vpn_name} após todas as tentativas")
             return False
 
         except Exception as e:
-            self.logger.error(f"Erro crítico durante conexão: {str(e)}", exc_info=True)
+            self.logger.error(f"❌ Erro crítico durante conexão: {str(e)}", exc_info=True)
             return False
         
     def _find_connect_button(self, window: WindowSpecification) -> Optional[WindowSpecification]:
@@ -464,10 +464,10 @@ class VPNConnectionManager:
             )
             disconnect_button.click_input()
             time.sleep(3)
-            self.logger.info(f"VPN {vpn_name} desconectada")
+            self.logger.info(f"ℹ️ VPN {vpn_name} desconectada")
             return True
         except Exception as e:
-            self.logger.error(f"Falha ao desconectar {vpn_name}: {str(e)}")
+            self.logger.error(f"❌ Falha ao desconectar {vpn_name}: {str(e)}")
             return False
 
     def _verify_vpn_connection(self, expected_gateway: str) -> bool:
@@ -487,7 +487,7 @@ class VPNConnectionManager:
                 return True
             time.sleep(3)
         
-        self.logger.warning("Falha ao verificar conexão dentro do timeout")
+        self.logger.warning("❌ Falha ao verificar conexão dentro do timeout")
         return False
 
     def _update_current_vpn(self, gateway: Optional[str]) -> None:
@@ -524,11 +524,9 @@ class VPNConnectionManager:
             desktop = pywinauto.Desktop(backend="uia")
             try:
                 window = desktop["Configurações de VPN"]
-                # self.logger.debug("Janela encontrada como 'Configurações de VPN'")
                 return window
             except:
                 window = desktop["VPN settings"]
-                # self.logger.debug("Janela encontrada como 'VPN settings'")
                 return window
             
         except Exception as e:

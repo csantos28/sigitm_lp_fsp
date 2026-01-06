@@ -191,7 +191,7 @@ class ExcelFileHandler:
             return self._load_to_dataframe(target_path)
 
         except Exception as e:
-            self.logger.error(f"Erro ao processar arquivo mais recente: {e}")
+            self.logger.error(f"❌ Erro ao processar arquivo mais recente: {e}")
             return FileProcessingResult(success=False, message=f"Erro ao processar arquivo mais recente: {str(e)}")
 
     def delete_most_recent_file(self, file_path: Path) -> bool:
