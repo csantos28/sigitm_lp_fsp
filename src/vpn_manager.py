@@ -170,7 +170,7 @@ class VPNConnectionManager:
                 - Mensagem detalhada do resultado
         """
        # 1. Verificação inicial
-        self.logger.info("Verificando se há alguma VPN contecatada...")
+        self.logger.info("🔍 Verificando se há alguma VPN contecatada...")
         current_gateway = self._get_active_gateway(force_check=True)
         self._update_current_vpn(current_gateway)
         
@@ -183,7 +183,7 @@ class VPNConnectionManager:
         if current_gateway == 'bh':
             return True, "Já conectado à VPN-BH"
 
-        self.logger.info("Nenhuma VPN conectada.")
+        self.logger.info("❌ Nenhuma VPN conectada.")
 
         # 2. Tentativa na VPN-BH
         self.logger.info("Iniciando conexão com VPN-BH...")

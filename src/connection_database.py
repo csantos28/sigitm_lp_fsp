@@ -96,7 +96,7 @@ class PostgreSQLHandler:
                 application_name=self._config.application_name,
                 cursor_factory=DictCursor
             )
-            self._logger.info("Conexão com o PostgreSQL estabelecida com sucesso.")
+            self._logger.info("✅ Conexão com o PostgreSQL estabelecida com sucesso.")
 
             # Configurações recomendadas para performance
             with self._connection.cursor() as cursor:

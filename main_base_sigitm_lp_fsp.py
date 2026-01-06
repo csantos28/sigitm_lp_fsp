@@ -75,7 +75,7 @@ class MainOrchestrator:
 
             # 2. Carga
             with PostgreSQLHandler(self.db_config) as db:
-                self.logger.info(f"🌐 Conectado ao banco de dados: {self.db_config.dbname}")
+                self.logger.info(f"✅  Conectado ao banco de dados: {self.db_config.dbname}")
 
                 if not db.table_exists(table_name):
                     db.create_table_from_dataframe(df, table_name)

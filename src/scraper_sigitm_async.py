@@ -44,7 +44,6 @@ class SIGITMAutomation:
         self.playwright_engine: Playwright = None
         self.context: BrowserContext = None
         self.page: Page = None
-        self.system_page: Page = None
         self.download_dir = Path(user_downloads_dir())
         self.max_captcha_retries = 5
 
@@ -123,7 +122,7 @@ class SIGITMAutomation:
             check_elements: Lista de seletores para verificar (opcional)
         """        
 
-        self.logger.info(f"🌐 Aguardando carregamento: {step_name}")
+        self.logger.info(f"⏳ Aguardando carregamento: {step_name}")
         start_time = time.time()
 
         try:

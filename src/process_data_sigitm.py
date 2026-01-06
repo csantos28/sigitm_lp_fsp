@@ -116,28 +116,35 @@ class ExcelFileHandler:
         # Defini fuso horário do Brasil(BRT - Brasília, UTC-3)
         fuso_horario = pytz.timezone("America/Sao_Paulo")
 
-        # Pegando a data atual, subtraindo 1 dia e concatenando com a hora 00:00
-        dthr_corte = datetime.now(fuso_horario).strftime("%Y-%m-%d")
-        dthr_corte += " 00:00"
+        # Pegando a data atual, e concatenando com a hora 00:00
+        dthr_corte = datetime.now(fuso_horario).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
 
         # Adiciona coluna da data de referência da base
         dt_ref = (datetime.now(fuso_horario) - timedelta(days=1)).strftime("%Y-%m-%d")
         df.insert(0, "dt_ref", dt_ref)
 
-        # Processa colunas de data
         for col in self.DATE_COLUMNS:
             if col in df.columns:
                 try:
                     with warnings.catch_warnings():
                         warnings.simplefilter('ignore', UserWarning)
-                        # Converte a string original para objeto datetime do Pandas
-                        df[col] = pd.to_datetime(df[col], errors='coerce')
-                    
-                    # Converte o objeto datetime para string no formato ISO (yyyy-mm-dd hh:mm:ss)
-                    df[col] = df[col].dt.strftime(self.DISPLAY_DATETIME_FORMAT).where(df[col].notnull(), None)
+                        # 1. Converte a string original para objeto datetime do Pandas
+                        df[col] = pd.to_datetime(df[col], dayfirst=True, errors='coerce')
+
+                        # 2. Remove fuso horário da coluna caso o Pandas tenha inserido
+                        if df[col].dt.tz is not None:
+                            df[col] = df[col].dt.tz_localize(None)
                 
                 except Exception as e:
                     self.logger.warning(f"⚠️ Erro no processamento da coluna {col}: {e}")
+
+        # Não permite que dados criados ou fechados hoje entrem na carga
+        condicao_historico = (df['data_criacao'] < dthr_corte) & (df['data_de_baixa'] < dthr_corte)
+        
+        # Pega os tickets que ainda estão abertos
+        condicao_abertos = (df['data_criacao'] < dthr_corte) & (df['data_de_baixa'].isna())            
+
+        df = df[condicao_historico | condicao_abertos].copy()
 
         # Tratamento de IDs e tipagem Segura        
         id_cols = ["vta_pk", "raiz", "codigo_localidade"]
@@ -151,13 +158,7 @@ class ExcelFileHandler:
         
         # Normalização de colunas de texto
         text_cols = df.select_dtypes(include=['object']).columns
-        df[text_cols] = df[text_cols].astype(str).replace("None", None)
-
-        # Encontra os índices das linhas onde a data é maior ou igual à data de corte
-        indice_for_delete = df[(df['data_criacao'] >= dthr_corte) | (df['data_de_baixa'] >= dthr_corte)].index
-
-        # Deleta as linhas do DataFrame original, que se enquadram nas condinções acima
-        df.drop(indice_for_delete, inplace=True)         
+        df[text_cols] = df[text_cols].astype(str).replace("None", None)       
 
         return df 
 
@@ -169,7 +170,7 @@ class ExcelFileHandler:
 
             processed_df = self._process_dataframe(df)
 
-            self.logger.info("Arquivo Excel processado com sucesso.")
+            self.logger.info("✅ Arquivo Excel processado com sucesso.")
             
             return FileProcessingResult(success=True, message="Arquivo processado com sucesso", dataframe=processed_df)
         
@@ -203,9 +204,9 @@ class ExcelFileHandler:
             # Se o orquestrador já possui o caminho, usa ele. Do contrário, busca no disco (fallback).
             target_path = file_path if file_path else self._find_most_recent_file()
             target_path.unlink()
-            self.logger.info(f"Arquivo removido com sucesso: {file_path}")
+            self.logger.info(f"✅ Arquivo removido com sucesso: {file_path}")
             return True
 
         except Exception as e:
-            self.logger.error(f"Erro ao remover arquivo: {e}")
+            self.logger.error(f"❌ Erro ao remover arquivo: {e}")
             return False                                   
